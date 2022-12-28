@@ -1,0 +1,9 @@
+.ball {
+  position: "absolute";
+  /* left: x;
+  top: y; */
+  width: "2rem";
+  aspect-ratio: "1/1";
+  border-radius: "100%";
+  background-color: "blue";
+}
