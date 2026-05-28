@@ -2,8 +2,8 @@
 // ball size
 
 const PALLET_WIDTH = 10;
-const PALLET_HEIGHT = 50;
-const PALLET_SPEED = 5;
+const PALLET_HEIGHT = 200;
+const PALLET_SPEED = 15;
 
 const PalletOptions = {
   PALLET_WIDTH,
@@ -12,7 +12,7 @@ const PalletOptions = {
 };
 
 const BALL_RADIUS = 10;
-const BALL_SPEED = 5;
+const BALL_SPEED = 15;
 
 const BallOptions = {
   BALL_RADIUS,

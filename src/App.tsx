@@ -7,24 +7,17 @@ import useKeyPress from "./hooks/useKeyPress";
 import { BallOptions, PalletOptions } from "./GameOptions";
 
 function App() {
-  // could keep state in context
   const [center, setCenter] = useState<{ x: number; y: number }>({
     x: window.innerWidth * 0.5,
     y: window.innerHeight * 0.5,
   });
-  // const [ball, setBall] = useState<BallState>({
-  //   position: { x: center.x, y: center.y },
-  //   velocity: { x: -5, y: 0 },
-  //   radius: 10,
-  // });
-
   const [ball, setBall] = useState<BallObject>(
-    new BallObject(center.x, center.y, -2 * BallOptions.BALL_SPEED, 0)
+    new BallObject(center.x, center.y, -BallOptions.BALL_SPEED, 0)
   );
-  const [player1Pallet, setPlayer1Pallet] = useState<PalletObject>(
+  const [p1Pallet, setP1Pallet] = useState<PalletObject>(
     new PalletObject(0, center.y, 0, 0)
   );
-  const [player2Pallet, setPlayer2Pallet] = useState<PalletObject>(
+  const [p2Pallet, setP2Pallet] = useState<PalletObject>(
     new PalletObject(
       window.innerWidth - PalletOptions.PALLET_WIDTH,
       center.y,
@@ -33,10 +26,10 @@ function App() {
     )
   );
   const [time, setTime] = useState(0);
-  const [player1Up, setPlayer1Up] = useState(false);
-  const [player1Down, setPlayer1Down] = useState(false);
-  const [player2Up, setPlayer2Up] = useState(false);
-  const [player2Down, setPlayer2Down] = useState(false);
+  const [p1Up, setP1Up] = useState(false);
+  const [p1Down, setP1Down] = useState(false);
+  const [p2Up, setP2Up] = useState(false);
+  const [p2Down, setP2Down] = useState(false);
 
   const updateBall = () => {
     // pallet collision
@@ -48,11 +41,53 @@ function App() {
     // collision with pallet 2
 
     setBall((ball) => {
-      const p1 = player1Pallet;
+      const p1 = p1Pallet;
 
       let [newX, newY] = [ball.x + ball.vx, ball.y + ball.vy];
       let [newVX, newVY] = [ball.vx, ball.vy];
-      let collision = false;
+
+      // wall collision
+      // up down collisions
+      for (let x = 0; x < window.innerWidth; x++) {
+        // check distance to ball
+        const y = 0;
+        const dist = Math.sqrt(
+          Math.pow(ball.center.x + ball.vx - x, 2) +
+            Math.pow(ball.center.y + ball.vy - y, 2)
+        );
+
+        if (dist < ball.radius) {
+          console.log(dist);
+          newVX = ball.vx;
+          newVY = -ball.vy;
+
+          return new BallObject(ball.x, 0, newVX, newVY);
+        }
+      }
+
+      for (let x = 0; x < window.innerWidth; x++) {
+        // check distance to ball
+        const y = window.innerHeight;
+        const dist = Math.sqrt(
+          Math.pow(ball.center.x + ball.vx - x, 2) +
+            Math.pow(ball.center.y + ball.vy - y, 2)
+        );
+
+        if (dist < ball.radius) {
+          console.log(dist);
+          newVX = ball.vx;
+          newVY = -ball.vy;
+
+          return new BallObject(
+            ball.x,
+            window.innerHeight - 2 * ball.radius,
+            newVX,
+            newVY
+          );
+        }
+      }
+
+      // left right collisions
 
       for (let y = p1.y; y < p1.y + p1.height; y++) {
         // rectangle
@@ -63,28 +98,44 @@ function App() {
           Math.pow(ball.center.x - x, 2) + Math.pow(ball.center.y - y, 2)
         );
         if (dist < ball.radius) {
-          console.log(x, y);
-          newVX *= -1;
-          newVY *= -1;
-          collision = true;
-          console.log(collision, newVX, newVY);
+          const v = BallOptions.BALL_SPEED;
+          const theta = Math.atan(
+            (ball.center.y - p1.center.y) / (ball.center.x - p1.center.x)
+          );
+
+          // newVX *= -1;
+          newVX = v * Math.cos(theta);
+          newVY = v * Math.sin(theta);
+          // newVY *= -1;
+
           newX = x;
+
           return new BallObject(newX, newY, newVX, newVY);
         }
       }
 
-      const p2 = player2Pallet;
+      const p2 = p2Pallet;
       for (let y = p2.y; y < p2.y + p2.height; y++) {
-        // every coord on the left of the pallet
         const x = p2.x;
 
         if (
           Math.sqrt(Math.pow(newX - x, 2) + Math.pow(newY - y, 2)) < ball.radius
         ) {
-          newVX *= -1;
-          newVY *= -1;
-          newX = x;
+          const v = BallOptions.BALL_SPEED;
+
+          // collision angle
+          // gives us direction for each vector component, will not dictate
+          const theta = Math.atan(
+            (ball.center.y - p2.center.y) / (ball.center.x - p2.center.x)
+          );
+
+          // newVX *= -1;
+          // newVY *= -1;
+          newVX = v * -Math.cos(theta);
+          newVY = v * -Math.sin(theta);
+          newX = x - 3 * ball.radius; // wtf
           newY = y;
+          // console.log(theta, Math.cos(theta), Math.sin(theta));
 
           return new BallObject(newX, newY, newVX, newVY);
         }
@@ -108,8 +159,8 @@ function App() {
   };
 
   const updatePallets = () => {
-    setPlayer1Pallet((player1Pallet) => updatePallet(player1Pallet));
-    setPlayer2Pallet((player2Pallet) => updatePallet(player2Pallet));
+    setP1Pallet((player1Pallet) => updatePallet(player1Pallet));
+    setP2Pallet((player2Pallet) => updatePallet(player2Pallet));
   };
 
   useEffect(() => {
@@ -122,16 +173,16 @@ function App() {
     document.addEventListener("keydown", (e) => {
       switch (e.key) {
         case "w":
-          setPlayer1Up(true);
+          setP1Up(true);
           break;
         case "s":
-          setPlayer1Down(true);
+          setP1Down(true);
           break;
         case "ArrowUp":
-          setPlayer2Up(true);
+          setP2Up(true);
           break;
         case "ArrowDown":
-          setPlayer2Down(true);
+          setP2Down(true);
           break;
       }
     });
@@ -139,38 +190,38 @@ function App() {
     document.addEventListener("keyup", (e) => {
       switch (e.key) {
         case "w":
-          setPlayer1Up(false);
+          setP1Up(false);
           break;
         case "s":
-          setPlayer1Down(false);
+          setP1Down(false);
           break;
         case "ArrowUp":
-          setPlayer2Up(false);
+          setP2Up(false);
           break;
         case "ArrowDown":
-          setPlayer2Down(false);
+          setP2Down(false);
           break;
       }
     });
 
     return () => clearInterval(interval);
-  }, []);
+  }, [p1Pallet, p2Pallet, ball]);
 
   useEffect(() => {
-    console.log(player1Up, player1Down, player2Up, player2Down);
+    console.log(p1Up, p1Down, p2Up, p2Down);
     let direction1 = 0;
     let direction2 = 0;
 
-    if (player1Up && !player1Down) direction1 = -1;
-    else if (!player1Up && player1Down) direction1 = 1;
+    if (p1Up && !p1Down) direction1 = -1;
+    else if (!p1Up && p1Down) direction1 = 1;
 
-    if (player2Up && !player2Down) direction2 = -1;
-    else if (!player2Up && player2Down) direction2 = 1;
+    if (p2Up && !p2Down) direction2 = -1;
+    else if (!p2Up && p2Down) direction2 = 1;
 
-    const p1 = player1Pallet;
-    const p2 = player2Pallet;
+    const p1 = p1Pallet;
+    const p2 = p2Pallet;
 
-    setPlayer1Pallet(
+    setP1Pallet(
       new PalletObject(
         p1.x,
         p1.y,
@@ -179,7 +230,7 @@ function App() {
       )
     );
 
-    setPlayer2Pallet(
+    setP2Pallet(
       new PalletObject(
         p2.x,
         p2.y,
@@ -187,12 +238,12 @@ function App() {
         PalletOptions.PALLET_SPEED * direction2
       )
     );
-  }, [player1Up, player1Down, player2Up, player2Down]);
+  }, [p1Up, p1Down, p2Up, p2Down]);
 
   return (
     <div>
-      <Pallet pallet={player1Pallet} />
-      <Pallet pallet={player2Pallet} />
+      <Pallet pallet={p1Pallet} />
+      <Pallet pallet={p2Pallet} />
       <Ball ball={ball} />
     </div>
   );
